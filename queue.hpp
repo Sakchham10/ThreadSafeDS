@@ -1,0 +1,13 @@
+//
+// Created by Sakchham Sangroula on 6/28/26.
+//
+
+#ifndef THREADSAFEDATASTRUCTURE_QUEUE_HPP
+#define THREADSAFEDATASTRUCTURE_QUEUE_HPP
+
+
+class queue {
+};
+
+
+#endif //THREADSAFEDATASTRUCTURE_QUEUE_HPP
