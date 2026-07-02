@@ -1,6 +1,8 @@
 #ifndef THREADSAFEDATASTRUCTURE_LINKEDLIST_HPP
 #define THREADSAFEDATASTRUCTURE_LINKEDLIST_HPP
 #include <mutex>
+#include <semaphore>
+
 #include "threadManager.hpp"
 
 
@@ -23,11 +25,13 @@ public:
 
 private:
    node *head;
-   std::mutex dataAccessLock;
+   std::binary_semaphore readerSemaphore;
+   std::binary_semaphore writerSemaphore;
    int totalTimeToRun;
    int totalOperationsCompleted;
    int startRange;
    int endRange;
+   int readerCount;
 
    void insertNode(int value);
 

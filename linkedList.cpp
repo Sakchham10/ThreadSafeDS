@@ -9,11 +9,11 @@ void linkedList::insertNode(int value) {
         return tManager->shouldThreadsBeLocked == false;
     });
     activationLock.unlock();
-    std::unique_lock accessLock(dataAccessLock);
+    writerSemaphore.acquire();
     node *newNode = new node{value, nullptr};
     if (head == nullptr) {
         head = newNode;
-        accessLock.unlock();
+        writerSemaphore.release();
         return;
     }
     node *curr = head;
@@ -21,7 +21,7 @@ void linkedList::insertNode(int value) {
         curr = curr->next;
     }
     curr->next = newNode;
-    accessLock.unlock();
+    writerSemaphore.release();
 }
 
 void linkedList::deleteNode(int value) {
@@ -30,10 +30,10 @@ void linkedList::deleteNode(int value) {
         return tManager->shouldThreadsBeLocked == false;
     });
     activationLock.unlock();
-    std::unique_lock accessLock(dataAccessLock);
+    writerSemaphore.acquire();
     if (head == nullptr) {
         std::cout << "No node in linkedlist. Delete aborted.\n";
-        accessLock.unlock();
+        writerSemaphore.release();
         return;
     }
     node *curr = head;
@@ -44,7 +44,7 @@ void linkedList::deleteNode(int value) {
     }
     if (curr == nullptr) {
         std::cout << "Delete aborted,value not found\n";
-        accessLock.unlock();
+        writerSemaphore.release();
         return;
     }
     if (prev == nullptr) {
@@ -52,13 +52,13 @@ void linkedList::deleteNode(int value) {
         node *temp = head;
         head = head->next;
         delete temp;
-        accessLock.unlock();
+        writerSemaphore.release();
         return;
     }
     prev->next = curr->next;
     std::cout << "Deleting the value " << value << "\n";
     delete curr;
-    accessLock.unlock();
+    writerSemaphore.release();
 }
 
 bool linkedList::findNode(int value) {
@@ -67,10 +67,20 @@ bool linkedList::findNode(int value) {
         return tManager->shouldThreadsBeLocked == false;
     });
     activationLock.unlock();
-    std::unique_lock accessLock(dataAccessLock);
+    readerSemaphore.acquire();
+    readerCount++;
+    if (readerCount == 1) {
+        writerSemaphore.acquire();
+    }
+    readerSemaphore.release();
     if (head == nullptr) {
         std::cout << "No node in linkedlist. Can't find anything.\n";
-        accessLock.unlock();
+        readerSemaphore.acquire();
+        readerCount--;
+        if (readerCount == 0) {
+            writerSemaphore.release();
+        }
+        readerSemaphore.release();
         return false;
     }
     node *curr = head;
@@ -79,10 +89,20 @@ bool linkedList::findNode(int value) {
     }
     if (curr == nullptr) {
         std::cout << value << " not found. Find aborted.\n";
-        accessLock.unlock();
+        readerSemaphore.acquire();
+        readerCount--;
+        if (readerCount == 0) {
+            writerSemaphore.release();
+        }
+        readerSemaphore.release();
         return false;
     }
-    accessLock.unlock();
+    readerSemaphore.acquire();
+    readerCount--;
+    if (readerCount == 0) {
+        writerSemaphore.release();
+    }
+    readerSemaphore.release();
     return true;
 }
 
@@ -92,10 +112,10 @@ bool linkedList::findAndReplaceNode(int currValue, int value) {
         return tManager->shouldThreadsBeLocked == false;
     });
     activationLock.unlock();
-    std::unique_lock accessLock(dataAccessLock);
+    writerSemaphore.acquire();
     if (head == nullptr) {
         std::cout << "No node in linkedlist, aborting replace\n";
-        accessLock.unlock();
+        writerSemaphore.release();
         return false;
     }
     node *curr = head;
@@ -104,12 +124,12 @@ bool linkedList::findAndReplaceNode(int currValue, int value) {
     }
     if (curr == nullptr) {
         std::cout << currValue << " not found. Replace aborted\n";
-        accessLock.unlock();
+        writerSemaphore.release();
         return false;
     }
     curr->value = value;
     std::cout << currValue << " replaced with " << value << "\n";
-    accessLock.unlock();
+    writerSemaphore.release();
     return true;
 }
 
@@ -165,7 +185,7 @@ void linkedList::startTest(int timeToRun, int totalThreads) {
     }
 }
 
-linkedList::linkedList(threadManager *tManager) {
+linkedList::linkedList(threadManager *tManager) : readerSemaphore(1), writerSemaphore(1) {
     head = nullptr;
     this->tManager = tManager;
 }
