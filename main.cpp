@@ -12,9 +12,4 @@ int main() {
         manager.shutDown();
     }
     myList.getStats();
-    threadManager manager2 = threadManager(10);
-    linkedListNum myList2 = linkedListNum();
-    myList2.test(manager2, 4000);
-    manager2.shutDown();
-    myList2.getStats();
 }

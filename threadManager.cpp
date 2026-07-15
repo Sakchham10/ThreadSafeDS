@@ -28,7 +28,6 @@ void threadManager::submit(std::function<void()> *task) {
     taskInQueue.notify_all();
 }
 
-
 void threadManager::threadTask() {
     while (true) {
         std::unique_lock queueDataLock(queueLock);
